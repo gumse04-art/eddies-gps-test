@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eddies GPS-test</title>
+<style>
+body {
+  background: #0c1730;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 25px;
+}
+button {
+  background: #32d4a4;
+  border: 0;
+  border-radius: 12px;
+  padding: 18px;
+  font-size: 22px;
+  margin: 12px;
+}
+#distance {
+  font-size: 55px;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+<h1>EDDIES GPS-TEST 🛰️</h1>
+<p>Tilbagelagt distance</p>
+<div id="distance">0 m</div>
+<p id="status">GPS er ikke startet</p>
+<button onclick="startGPS()">START GPS</button>
+<button onclick="stopGPS()">STOP</button>
+
+<script>
+let watchId = null;
+let previous = null;
+let total = 0;
+
+function meters(a, b) {
+  const R = 6371000;
+  const rad = Math.PI / 180;
+  const dLat = (b.latitude-a.latitude)*rad;
+  const dLon = (b.longitude-a.longitude)*rad;
+  const x = Math.sin(dLat/2)**2 +
+    Math.cos(a.latitude*rad) *
+    Math.cos(b.latitude*rad) *
+    Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+
+function startGPS() {
+  if (!navigator.geolocation) {
+    document.getElementById("status").textContent =
+      "GPS understøttes ikke";
+    return;
+  }
+  if (watchId !== null) return;
+
+  total = 0;
+  previous = null;
+  document.getElementById("distance").textContent = "0 m";
+  document.getElementById("status").textContent =
+    "Venter på GPS...";
+
+  watchId = navigator.geolocation.watchPosition(
+    position => {
+      const current = position.coords;
+      if (previous && current.accuracy <= 30) {
+        const step = meters(previous, current);
+        if (step >= 3 && step <= 100) {
+          total += step;
+        }
+      }
+      previous = current.accuracy <= 30 ? current : null;
+      document.getElementById("distance").textContent =
+        Math.round(total) + " m";
+      document.getElementById("status").textContent =
+        "GPS aktiv – nøjagtighed: " +
+        Math.round(current.accuracy) + " m";
+    },
+    error => {
+      document.getElementById("status").textContent =
+        "GPS-fejl: " + error.message;
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 20000
+    }
+  );
+}
+
+function stopGPS() {
+  if (watchId !== null) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+  document.getElementById("status").textContent =
+    "GPS stoppet";
+}
+</script>
+</body>
+</html>
