@@ -31,7 +31,7 @@ button {
 <p>Tilbagelagt distance</p>
 <div id="distance">0 m</div>
 <p id="status">GPS er ikke startet</p>
-<button onclick="startGPS()">START GPS</button>
+<button id="startKnap" onclick="startGPS()">START GPS</button>
 <button onclick="stopGPS()">STOP</button>
 <div id="diagnose">GPS-diagnose: Venter på målinger...</div>
 <script>
@@ -54,6 +54,7 @@ function meters(a, b) {
 }
 
 function startGPS() {
+    document.getElementById("startKnap").style.display = "none";
   if (!navigator.geolocation) {
     document.getElementById("status").textContent =
       "GPS understøttes ikke";
@@ -84,12 +85,17 @@ document.getElementById("diagnose").textContent =
         const step = meters(previous, current);
         if (step >= 3 && step <= 100) {
           total += step;
+previous = current;
         }
           else if (step < 3) {
   smaaBevaegelser++;
 }
       }
-      previous = current.accuracy <= 30 ? current : null;
+      if (current.accuracy > 30) {
+    previous = null;
+} else if (previous === null) {
+    previous = current;
+}
       document.getElementById("distance").textContent =
         Math.round(total) + " m";
       document.getElementById("status").textContent =
@@ -97,6 +103,7 @@ document.getElementById("diagnose").textContent =
         Math.round(current.accuracy) + " m";
     },
     error => {
+        document.getElementById("startKnap").style.display = "inline-block";
       document.getElementById("status").textContent =
         "GPS-fejl: " + error.message;
       if (watchId !== null) {
@@ -113,6 +120,7 @@ document.getElementById("diagnose").textContent =
 }
 
 function stopGPS() {
+    document.getElementById("startKnap").style.display = "inline-block";
   if (watchId !== null) {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
